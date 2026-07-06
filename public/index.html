@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VibeShield</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="scan-panel">
+        <div class="intro">
+          <p class="eyebrow">Defensive website scanner</p>
+          <h1>VibeShield</h1>
+          <p class="lede">Paste a site you own. Get a prioritized report on the security issues fast-built apps most often ship with.</p>
+        </div>
+
+        <div class="access-row">
+          <label for="access-token">Scanner access token</label>
+          <input id="access-token" name="access-token" type="password" placeholder="Only required when the server is configured with one" autocomplete="off">
+        </div>
+
+        <form id="scan-form" class="scan-form">
+          <label for="url">Website URL</label>
+          <div class="url-row">
+            <input id="url" name="url" type="url" placeholder="https://example.com" autocomplete="url" required>
+            <button id="token-button" type="button">Get token</button>
+          </div>
+          <div id="verification" class="verification hidden">
+            <div>
+              <strong>Publish this token</strong>
+              <span id="verify-url"></span>
+            </div>
+            <pre id="verify-token"></pre>
+            <button id="verify-button" type="button">Verify ownership</button>
+          </div>
+          <label class="consent">
+            <input id="authorized" type="checkbox" required>
+            <span>I own this website or have explicit authorization to test it.</span>
+          </label>
+          <button id="scan-button" type="submit" disabled>Run scan</button>
+        </form>
+
+        <div class="scope">
+          <div>
+            <strong>Checks</strong>
+            <span>Headers, cookies, TLS, CORS, exposed files, crawl surface, framework hints, safe probes.</span>
+          </div>
+          <div>
+            <strong>Guardrails</strong>
+            <span>Domain verification, no destructive testing, no login guessing, private network blocking, rate limits.</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="status" class="status hidden" aria-live="polite">
+        <div class="spinner"></div>
+        <div>
+          <strong>Scanning the public surface</strong>
+          <span id="status-text">Fetching the homepage and checking security basics.</span>
+        </div>
+      </section>
+
+      <section id="error" class="error hidden"></section>
+
+      <section id="report" class="report hidden">
+        <div class="report-head">
+          <div>
+            <p class="eyebrow">Security report</p>
+            <h2 id="report-target"></h2>
+          </div>
+          <div class="score">
+            <span id="score-value">--</span>
+            <small id="score-label"></small>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div><strong id="critical-count">0</strong><span>Critical</span></div>
+          <div><strong id="high-count">0</strong><span>High</span></div>
+          <div><strong id="medium-count">0</strong><span>Medium</span></div>
+          <div><strong id="low-count">0</strong><span>Low</span></div>
+        </div>
+
+        <div class="summary-grid">
+          <article>
+            <h3>Surface</h3>
+            <dl id="surface-list"></dl>
+          </article>
+          <article>
+            <h3>Stack hints</h3>
+            <div id="stack-hints" class="chips"></div>
+          </article>
+          <article>
+            <h3>TLS</h3>
+            <dl id="tls-list"></dl>
+          </article>
+        </div>
+
+        <div class="toolbar">
+          <h3>Findings</h3>
+          <div class="filters" id="filters">
+            <button data-filter="all" class="active" type="button">All</button>
+            <button data-filter="Critical" type="button">Critical</button>
+            <button data-filter="High" type="button">High</button>
+            <button data-filter="Medium" type="button">Medium</button>
+            <button data-filter="Low" type="button">Low</button>
+            <button data-filter="Info" type="button">Info</button>
+          </div>
+        </div>
+
+        <div id="findings" class="findings"></div>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
