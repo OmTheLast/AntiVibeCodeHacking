@@ -892,6 +892,15 @@ const server = http.createServer(async (req, res) => {
       enforceRateLimit(ip);
     }
 
+    if (req.method === "GET" && req.url === "/healthz") {
+      json(res, 200, {
+        ok: true,
+        name: "VibeShield",
+        activeScans
+      });
+      return;
+    }
+
     if (req.method === "POST" && req.url === "/api/verification-token") {
       let raw = "";
       req.on("data", (chunk) => {

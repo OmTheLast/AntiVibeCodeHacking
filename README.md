@@ -10,6 +10,16 @@ npm start
 
 Open `http://localhost:4173`.
 
+## Deploy
+
+Use a Node host. Render is the current recommended path for this repo:
+
+```bash
+render.yaml
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md).
+
 For a hosted deployment, set an access token:
 
 ```bash
