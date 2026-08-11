@@ -165,6 +165,7 @@ function renderReport(report) {
   document.querySelector("#high-count").textContent = report.counts.high;
   document.querySelector("#medium-count").textContent = report.counts.medium;
   document.querySelector("#low-count").textContent = report.counts.low;
+  renderLaunchReadiness(report.launchReadiness);
 
   renderDefinitionList("#surface-list", {
     Pages: report.surface.pages.length,
@@ -196,6 +197,18 @@ function renderReport(report) {
   renderFindings(report.findings);
   reportBox.classList.remove("hidden");
   reportBox.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderLaunchReadiness(readiness) {
+  document.querySelector("#launch-verdict").textContent = readiness?.verdict || "Not available";
+  const list = document.querySelector("#launch-checks");
+  list.innerHTML = "";
+  (readiness?.checks || []).forEach((check) => {
+    const item = document.createElement("li");
+    item.className = check.status;
+    item.innerHTML = `<strong>${escapeHtml(check.title)}</strong><span>${escapeHtml(check.detail)}</span>`;
+    list.append(item);
+  });
 }
 
 function renderDefinitionList(selector, entries) {

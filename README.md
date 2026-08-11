@@ -1,6 +1,8 @@
 # VibeShield
 
-A small defensive scanner for builders who want quick, plain-English security feedback for a public website.
+VibeShield is a launch-readiness security preflight for builders shipping fast-built web apps.
+
+It is not a full autonomous pentesting platform. It focuses on the public website surface, domain-verified scans, stack-specific launch checks, and plain-English fixes that are easy to hand to a coding agent.
 
 ## Run
 
@@ -37,7 +39,7 @@ The browser UI will ask for that token before calling API routes.
 - Exposed files and source maps
 - Same-origin crawl surface
 - Forms, inputs, scripts, and discovered API-like paths
-- Stack hints for Next.js, Vercel, Supabase, Firebase, Stripe, Clerk, and common servers
+- Launch-readiness checks for Next.js, Vercel, Supabase, Firebase, Stripe, Clerk, and common servers
 - Safe active probes for reflected input and open redirects
 
 The scanner is designed for authorized testing of public websites. It blocks local/private network targets, requires domain verification before scanning, redacts likely secrets in evidence, writes minimal audit logs to `data/audit.jsonl`, and keeps active probing lightweight.

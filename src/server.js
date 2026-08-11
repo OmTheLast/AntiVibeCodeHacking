@@ -680,6 +680,17 @@ async function activeProbes(baseUrl, findings) {
 
 function stackGuidance(hints, findings, targetUrl, surface) {
   if (hints.includes("Next.js")) {
+    addFinding(findings, {
+      id: "nextjs-launch-checklist",
+      severity: "Info",
+      confidence: "High",
+      title: "Next.js Launch Checklist",
+      category: "Launch Readiness",
+      url: targetUrl,
+      evidence: ["Next.js was detected in public assets or response headers."],
+      why: "Fast-built Next.js apps often ship with public source maps, missing middleware checks, overly broad API routes, or exposed public environment assumptions.",
+      fix: "Before launch, review production source maps, middleware route matching, API route authentication, server actions, public env vars, and security headers in next.config.js or middleware."
+    });
     const sourceMaps = surface.scripts.filter((script) => script.endsWith(".map") || script.includes(".js.map"));
     if (sourceMaps.length) {
       addFinding(findings, {
@@ -698,45 +709,153 @@ function stackGuidance(hints, findings, targetUrl, surface) {
 
   if (hints.includes("Supabase")) {
     addFinding(findings, {
-      id: "supabase-rls-reminder",
-      severity: "Info",
+      id: "supabase-launch-checklist",
+      severity: "Medium",
       confidence: "High",
-      title: "Supabase Detected",
-      category: "Stack",
+      title: "Supabase Launch Checklist",
+      category: "Launch Readiness",
       url: targetUrl,
       evidence: ["Supabase references were detected in public assets."],
       why: "The public anon key is expected in browser apps, but database safety depends heavily on Row Level Security and storage policies.",
-      fix: "Verify RLS is enabled on every table with client access, add least-privilege policies, and check public storage buckets."
+      fix: "Verify RLS is enabled on every exposed table, add least-privilege policies, test as anon and normal users, review RPC functions, and check that storage buckets are private unless intentionally public."
     });
   }
 
   if (hints.includes("Firebase")) {
     addFinding(findings, {
-      id: "firebase-rules-reminder",
-      severity: "Info",
+      id: "firebase-launch-checklist",
+      severity: "Medium",
       confidence: "High",
-      title: "Firebase Detected",
-      category: "Stack",
+      title: "Firebase Launch Checklist",
+      category: "Launch Readiness",
       url: targetUrl,
       evidence: ["Firebase references were detected in public assets."],
       why: "Firebase client config is normally public, but Firestore, Realtime Database, and Storage rules decide what attackers can read or write.",
-      fix: "Review production security rules and test with an unauthenticated user and a normal authenticated user."
+      fix: "Review Firestore, Realtime Database, and Storage rules. Test reads and writes as unauthenticated users and normal users, and avoid broad allow read/write rules in production."
     });
   }
 
   if (hints.includes("Stripe")) {
     addFinding(findings, {
-      id: "stripe-webhook-reminder",
-      severity: "Info",
+      id: "stripe-launch-checklist",
+      severity: "Medium",
       confidence: "High",
-      title: "Stripe Detected",
-      category: "Stack",
+      title: "Stripe Launch Checklist",
+      category: "Launch Readiness",
       url: targetUrl,
       evidence: ["Stripe browser assets or checkout references were detected."],
       why: "Stripe public keys are expected in the browser. Secret keys and webhook signature verification need server-side review.",
       fix: "Make sure webhook handlers verify Stripe signatures and no sk_live or rk_live keys are present in public JavaScript."
     });
   }
+
+  if (hints.includes("Clerk")) {
+    addFinding(findings, {
+      id: "clerk-launch-checklist",
+      severity: "Medium",
+      confidence: "High",
+      title: "Clerk Launch Checklist",
+      category: "Launch Readiness",
+      url: targetUrl,
+      evidence: ["Clerk references were detected in public assets."],
+      why: "Client-side auth UI does not guarantee server-side protection. Fast-built apps often hide admin routes in the UI while API routes remain callable.",
+      fix: "Verify middleware protects private routes, API handlers validate sessions server-side, redirect URLs are allowlisted, and organization/admin roles are enforced on the server."
+    });
+  }
+
+  if (surface.apiPaths.length) {
+    addFinding(findings, {
+      id: "api-surface-launch-review",
+      severity: "Medium",
+      confidence: "Medium",
+      title: "Public API Surface Needs Launch Review",
+      category: "Launch Readiness",
+      url: targetUrl,
+      evidence: surface.apiPaths.slice(0, 6).map((apiPath) => `Discovered ${apiPath}`),
+      why: "API endpoints are where vibe-coded apps most often miss server-side authentication, authorization, input validation, and rate limiting.",
+      fix: "For every discovered API endpoint, verify authentication, object ownership checks, schema validation, error handling, and rate limits. Do not rely on the frontend to hide sensitive calls."
+    });
+  }
+
+  const adminRoutes = surface.pages
+    .map((page) => page.url)
+    .filter((pageUrl) => /\/(admin|dashboard|account|settings|billing|auth|login|signup)(\/|$|\?)/i.test(pageUrl));
+  if (adminRoutes.length) {
+    addFinding(findings, {
+      id: "sensitive-routes-launch-review",
+      severity: "Info",
+      confidence: "Medium",
+      title: "Sensitive Routes Found",
+      category: "Launch Readiness",
+      url: targetUrl,
+      evidence: adminRoutes.slice(0, 6),
+      why: "Login, dashboard, billing, settings, and admin routes need server-side authorization checks, not just hidden navigation.",
+      fix: "Review each sensitive route with logged-out, normal-user, and privileged-user sessions. Confirm private data is scoped to the current user or organization."
+    });
+  }
+}
+
+function buildLaunchReadiness(findings, hints, surface) {
+  const critical = findings.filter((finding) => finding.severity === "Critical").length;
+  const high = findings.filter((finding) => finding.severity === "High").length;
+  const medium = findings.filter((finding) => finding.severity === "Medium").length;
+  const detectedStacks = hints.filter((hint) => !hint.includes(":"));
+  const checks = [];
+
+  if (critical || high) {
+    checks.push({
+      status: "blocker",
+      title: "Fix high-impact findings before launch",
+      detail: `${critical} critical and ${high} high findings are present. Treat these as launch blockers.`
+    });
+  } else {
+    checks.push({
+      status: "pass",
+      title: "No critical or high public-surface findings",
+      detail: "The scanner did not observe critical or high findings in this lightweight pass."
+    });
+  }
+
+  if (medium) {
+    checks.push({
+      status: "warn",
+      title: "Review medium findings",
+      detail: `${medium} medium findings should be resolved or explicitly accepted before launch.`
+    });
+  }
+
+  if (surface.apiPaths.length) {
+    checks.push({
+      status: "warn",
+      title: "API endpoints need server-side review",
+      detail: `${surface.apiPaths.length} API-looking paths were discovered. Confirm auth, authorization, validation, and rate limits.`
+    });
+  }
+
+  if (detectedStacks.length) {
+    checks.push({
+      status: "warn",
+      title: "Run stack-specific checks",
+      detail: `Detected ${detectedStacks.slice(0, 5).join(", ")}. Use the stack launch findings as a manual checklist.`
+    });
+  }
+
+  if (surface.forms.length || surface.inputs.length) {
+    checks.push({
+      status: "warn",
+      title: "Forms and inputs need validation review",
+      detail: `${surface.forms.length} forms and ${surface.inputs.length} inputs were observed. Confirm server-side validation and safe output encoding.`
+    });
+  }
+
+  let verdict = "Ready for lightweight launch";
+  if (critical || high) verdict = "Launch blocked";
+  else if (medium || surface.apiPaths.length) verdict = "Fix or review before launch";
+
+  return {
+    verdict,
+    checks: checks.slice(0, 6)
+  };
 }
 
 function getTitle(html) {
@@ -833,12 +952,14 @@ async function scan(input) {
       finding.fixPrompt = makeFixPrompt(finding, url.toString());
     });
     const safeFindings = findings.map(sanitizeFinding);
+    const launchReadiness = buildLaunchReadiness(safeFindings, hints, surface);
 
     return {
       target: url.toString(),
       startedAt,
       completedAt: new Date().toISOString(),
       score: finalScore,
+      launchReadiness,
       tls: tlsInfo,
       homepage: {
         status: homepage.status,
